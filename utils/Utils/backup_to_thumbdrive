@@ -1,0 +1,62 @@
+#!/bin/bash
+
+USB_MOUNT="/media/yakultbottle/Thumbdrive"
+DEST_DIR="$USB_MOUNT/laptop_backup"
+SOURCES=(
+    "$HOME/Pictures"
+    "$HOME/Music"
+    "$HOME/Books"
+    "$HOME/School"
+)
+
+if ! mountpoint -q "$USB_MOUNT"; then
+    echo "Error: Flash drive not detected at $USB_MOUNT. Aborting."
+    exit 1
+fi
+
+echo "Flash drive detected. Starting backup..."
+
+mkdir -p "$DEST_DIR"
+
+echo "--- STARTING DRY RUN (Computer -> Thumbdrive) ---"
+DRY_RUN_OUTPUT=$(rsync -av --dry-run --stats --delete --inplace --no-perms --no-owner --no-group \
+    "${SOURCES[@]}" "$DEST_DIR")
+
+# read -p "Do you want to see the full list of files being changed? (y/n): " show_files
+
+if [[ "$show_files" == [yY]* ]]; then
+    echo "$DRY_RUN_OUTPUT" | less
+fi
+
+echo "--------------------------------------------"
+
+TRANSFER_BYTES=$(echo "$DRY_RUN_OUTPUT" | grep "Total transferred file size" | tr -dc '0-9')
+TRANSFER_BYTES=${TRANSFER_BYTES:-0}
+
+AVAILABLE_BYTES=$(df --output=avail -B1 "$USB_MOUNT" | tail -n 1 | xargs)
+
+TRANSFER_READABLE=$(numfmt --to=iec "$TRANSFER_BYTES")B
+AVAILABLE_READABLE=$(numfmt --to=iec "$AVAILABLE_BYTES")B
+
+if [ "$TRANSFER_BYTES" -gt "$AVAILABLE_BYTES" ]; then
+    echo "ERROR: Not enough space on the thumbdrive!"
+    echo "This backup requires: $TRANSFER_READABLE"
+    echo "Available space:      $AVAILABLE_READABLE"
+    exit 1
+fi
+
+echo "Requires $TRANSFER_READABLE / Available $AVAILABLE_READABLE"
+read -p "Apply these changes? (y/n): " confirm
+
+if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+    echo "Backing up..."
+    rsync -a --info=progress2 --delete --inplace --no-perms --no-owner --no-group \
+        "${SOURCES[@]}" "$DEST_DIR"
+    echo "Backup Complete!"
+else
+    echo "Backup cancelled."
+fi
+
+FREE_SPACE=$(df -h --output=avail "$USB_MOUNT" | tail -n 1 | xargs)
+
+echo "Space left in thumbdrive: $FREE_SPACE"

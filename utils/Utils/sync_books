@@ -5,25 +5,20 @@ SOURCE="$HOME/Books/"
 MOUNT_POINT="$HOME/Phone"
 DEST="$MOUNT_POINT/Shared"
 
-# 1. Attempt to mount
 if ! mountpoint -q "$MOUNT_POINT"; then
-    echo "📱 iPhone not detected at mount point. Attempting to mount..."
+    echo "iPhone not detected at mount point. Attempting to mount..."
 
-    # Ensure the directory exists
     mkdir -p "$MOUNT_POINT"
 
-    # Try to mount. If it fails, it usually means the phone isn't plugged in or trusted.
     if ! ifuse --documents com.obreey.reader "$MOUNT_POINT"; then
-        echo "❌ Error: Could not mount iPhone. Please ensure it is plugged in and UNLOCKED."
+        echo "Error: Could not mount iPhone. Please ensure it is plugged in and UNLOCKED."
         exit 1
     fi
-    echo "✅ Mount successful."
+    echo "Mount successful."
 fi
 
-# 2. Ensure destination exists on the phone
-# (I/O errors here usually mean the phone locked itself)
 if ! mkdir -p "$DEST" 2>/dev/null; then
-    echo "❌ Error: Cannot write to iPhone. Is the screen locked?"
+    echo "Error: Cannot write to iPhone. Is the screen locked?"
     exit 1
 fi
 
@@ -31,24 +26,22 @@ echo "--- STARTING DRY RUN (Computer -> Phone) ---"
 rsync -avzi --dry-run --progress --checksum --delete --inplace --no-perms --no-owner --no-group "$SOURCE" "$DEST"
 echo "--------------------------------------------"
 
-# 3. User Confirmation
 read -p "Apply these changes? (y/n): " confirm
 
 if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-    echo "🚀 Syncing..."
+    echo "Syncing..."
     rsync -az --info=progress2 --checksum --delete --inplace --no-perms --no-owner --no-group "$SOURCE" "$DEST"
-    echo "✅ Sync Complete!"
+    echo "Sync Complete!"
 else
-    echo "🛑 Sync cancelled."
+    echo "Sync cancelled."
 fi
 
-# 4. Clean up / Unmount
 echo "--------------------------------------------"
-echo "🔌 Unmounting iPhone safely..."
-cd ~ # Move out of the directory so it's not 'busy'
+echo "Unmounting iPhone safely..."
+cd ~
 if fusermount -u "$MOUNT_POINT"; then
-    echo "✅ Disconnected. You can now unplug your phone."
+    echo "Disconnected. You can now unplug your phone."
 else
-    echo "⚠️ Warning: Could not unmount. Please close any file manager windows and try 'fusermount -u $MOUNT_POINT' manually."
+    echo "Warning: Could not unmount. Please close any file manager windows and try 'fusermount -u $MOUNT_POINT' manually."
 fi
 
