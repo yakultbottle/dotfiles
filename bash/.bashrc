@@ -123,8 +123,8 @@ if ! shopt -oq posix; then
   fi
 fi
 
-if [ -f ~/Code/Advent-of-Code/alias ]; then
-    . ~/Code/Advent-of-Code/alias
+if [ -f ~/projects/Advent-of-Code/alias ]; then
+    . ~/projects/Advent-of-Code/alias
 fi
 
 export EDITOR=nvim
