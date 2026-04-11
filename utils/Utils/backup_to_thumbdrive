@@ -18,15 +18,25 @@ echo "Flash drive detected. Starting backup..."
 
 mkdir -p "$DEST_DIR"
 
+# ========================================================
+# CALLING THE BITWARDEN SCRIPT
+# ========================================================
+echo "--- BACKING UP BITWARDEN VAULT ---"
+BW_DEST="$USB_MOUNT/Bitwarden_Vault"
+mkdir -p "$BW_DEST"
+$HOME/Utils/bitwarden_backup.sh "$BW_DEST"
+
+if [ $? -ne 0 ]; then
+    echo "Error: Bitwarden backup failed! Aborting sync."
+    exit 1
+fi
+# ========================================================
+
 echo "--- STARTING DRY RUN (Computer -> Thumbdrive) ---"
 DRY_RUN_OUTPUT=$(rsync -av --dry-run --stats --delete --inplace --no-perms --no-owner --no-group \
     "${SOURCES[@]}" "$DEST_DIR")
 
-# read -p "Do you want to see the full list of files being changed? (y/n): " show_files
-
-if [[ "$show_files" == [yY]* ]]; then
-    echo "$DRY_RUN_OUTPUT" | less
-fi
+echo "$DRY_RUN_OUTPUT" | less -FX
 
 echo "--------------------------------------------"
 
